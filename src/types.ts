@@ -107,6 +107,11 @@ export interface MealPlanResult {
     description: string;
     action_items: string[];
   }>;
+  diet_cards?: Array<{
+    title: string;
+    description: string;
+    icon: string;
+  }>;
 }
 
 export interface WorkerConfig {

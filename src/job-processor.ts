@@ -79,7 +79,8 @@ export class JobProcessor {
         await this.sleep(this.config.pollIntervalMs);
 
       } catch (error) {
-        logger.error('Error in main polling loop', { error: error.message });
+        const err = error as Error;
+        logger.error('Error in main polling loop', { error: err.message });
         await this.sleep(5000); // Wait 5 seconds on error
       }
     }
@@ -105,7 +106,8 @@ export class JobProcessor {
 
       return data[0] as BackgroundJob;
     } catch (error) {
-      logger.error('Exception getting next job', { error: error.message });
+      const err = error as Error;
+      logger.error('Exception getting next job', { error: err.message });
       return null;
     }
   }
@@ -131,15 +133,16 @@ export class JobProcessor {
       });
 
     } catch (error) {
+      const err = error as Error;
       const duration = Date.now() - startTime;
       logger.error('❌ Job failed', { 
         jobId: job.job_id,
         jobType: job.job_type,
-        error: error.message,
+        error: err.message,
         durationMs: duration 
       });
 
-      await this.markJobFailed(job.job_id, error.message);
+      await this.markJobFailed(job.job_id, err.message);
     }
   }
 
@@ -219,7 +222,8 @@ export class JobProcessor {
         p_worker_id: this.config.workerId
       });
     } catch (error) {
-      logger.warn('Failed to update heartbeat', { jobId, error: error.message });
+      const err = error as Error;
+      logger.warn('Failed to update heartbeat', { jobId, error: err.message });
     }
   }
 
@@ -232,7 +236,8 @@ export class JobProcessor {
         p_status: 'completed'
       });
     } catch (error) {
-      logger.error('Failed to mark job as completed', { jobId, error: error.message });
+      const err = error as Error;
+      logger.error('Failed to mark job as completed', { jobId, error: err.message });
     }
   }
 
@@ -244,7 +249,8 @@ export class JobProcessor {
         p_error_message: errorMessage
       });
     } catch (error) {
-      logger.error('Failed to mark job as failed', { jobId, error: error.message });
+      const err = error as Error;
+      logger.error('Failed to mark job as failed', { jobId, error: err.message });
     }
   }
 
@@ -271,7 +277,8 @@ export class JobProcessor {
         logger.info('📱 Meal plan notification scheduled', { userId, planId });
       }
     } catch (error) {
-      logger.warn('Exception sending meal plan notification', { userId, planId, error: error.message });
+      const err = error as Error;
+      logger.warn('Exception sending meal plan notification', { userId, planId, error: err.message });
     }
   }
 

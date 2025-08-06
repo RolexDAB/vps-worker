@@ -54,7 +54,8 @@ async function main(): Promise<void> {
     await processor.start();
 
   } catch (error) {
-    logger.error('💥 Worker failed to start', { error: error.message, stack: error.stack });
+    const err = error as Error;
+    logger.error('💥 Worker failed to start', { error: err.message, stack: err.stack });
     process.exit(1);
   }
 }
@@ -71,6 +72,7 @@ process.on('uncaughtException', (error) => {
 
 // Start the worker
 main().catch(error => {
-  logger.error('Main function failed', { error: error.message });
+  const err = error as Error;
+  logger.error('Main function failed', { error: err.message });
   process.exit(1);
 });

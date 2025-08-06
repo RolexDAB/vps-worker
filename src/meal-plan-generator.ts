@@ -79,11 +79,12 @@ export class MealPlanGenerator {
       return result;
 
     } catch (error) {
+      const err = error as Error;
       logger.error('💥 Meal plan generation failed', { 
         userId, 
         planId, 
-        error: error.message,
-        stack: error.stack 
+        error: err.message,
+        stack: err.stack 
       });
       throw error;
     }
@@ -243,11 +244,12 @@ export class MealPlanGenerator {
     try {
       aiGeneratedPlan = JSON.parse(content);
     } catch (error) {
+      const err = error as Error;
       logger.error('Failed to parse OpenAI JSON response', { 
-        error: error.message,
+        error: err.message,
         contentPreview: content.substring(0, 500) 
       });
-      throw new Error(`Failed to parse AI response: ${error.message}`);
+      throw new Error(`Failed to parse AI response: ${err.message}`);
     }
 
     if (!aiGeneratedPlan.days || !Array.isArray(aiGeneratedPlan.days)) {
@@ -466,7 +468,7 @@ For cheat days, the "meals" array might be empty or contain a single placeholder
             } catch (error) {
               logger.warn(`Failed to get image for meal ${meal.name}`, { error });
               // Provide fallback image based on meal type
-              const fallbackImages = {
+              const fallbackImages: Record<string, string> = {
                 'Breakfast': 'https://images.unsplash.com/photo-1533089860892-a7c6f0a88666?q=80&w=800&auto=format&fit=crop',
                 'Lunch': 'https://images.unsplash.com/photo-1547496502-affa22d38842?q=80&w=800&auto=format&fit=crop',
                 'Dinner': 'https://images.unsplash.com/photo-1576402187878-974f70c890a5?q=80&w=800&auto=format&fit=crop',
@@ -482,7 +484,7 @@ For cheat days, the "meals" array might be empty or contain a single placeholder
 
   private async getMealImageUrl(mealName: string, mealType: string, aiKeywords: string[] = []): Promise<string> {
     const genericFoodImage = 'https://images.unsplash.com/photo-1512621776951-a57141f2eefd?q=80&w=800&auto=format&fit=crop';
-    const defaultImagesByType = {
+    const defaultImagesByType: Record<string, string> = {
       'Breakfast': 'https://images.unsplash.com/photo-1533089860892-a7c6f0a88666?q=80&w=800&auto=format&fit=crop',
       'Lunch': 'https://images.unsplash.com/photo-1547496502-affa22d38842?q=80&w=800&auto=format&fit=crop',
       'Dinner': 'https://images.unsplash.com/photo-1576402187878-974f70c890a5?q=80&w=800&auto=format&fit=crop',
@@ -505,7 +507,7 @@ For cheat days, the "meals" array might be empty or contain a single placeholder
         throw new Error(`Unsplash API error: ${response.status}`);
       }
 
-      const data = await response.json();
+      const data = await response.json() as any;
       
       if (data.results && data.results.length > 0) {
         // Find an image we haven't used yet
@@ -521,7 +523,8 @@ For cheat days, the "meals" array might be empty or contain a single placeholder
       return defaultImagesByType[mealType] || genericFoodImage;
 
     } catch (error) {
-      logger.warn(`Failed to fetch image from Unsplash for ${mealName}`, { error: error.message });
+      const err = error as Error;
+      logger.warn(`Failed to fetch image from Unsplash for ${mealName}`, { error: err.message });
       return defaultImagesByType[mealType] || genericFoodImage;
     }
   }
@@ -563,7 +566,8 @@ For cheat days, the "meals" array might be empty or contain a single placeholder
       }
       return [];
     } catch (error) {
-      logger.error('Error generating diet cards', { error: error.message });
+      const err = error as Error;
+      logger.error('Error generating diet cards', { error: err.message });
       return [];
     }
   }
