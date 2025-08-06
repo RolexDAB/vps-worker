@@ -1,4 +1,5 @@
 import { createClient, SupabaseClient } from '@supabase/supabase-js';
+import fetch from 'node-fetch';
 import { logger } from './logger.js';
 import { MealPlanGenerator } from './meal-plan-generator.js';
 import { BackgroundJob, MealPlanJobPayload, WorkerConfig } from './types.js';
@@ -196,8 +197,8 @@ export class JobProcessor {
         throw new Error(`Failed to save meal plan: ${saveError.message}`);
       }
 
-      // Send completion notification
-      await this.sendMealPlanNotification(payload.userId, payload.planId);
+      // Send instant completion notification
+      await this.sendInstantMealPlanNotification(payload.userId, payload.planId);
 
       // Mark job as completed
       await this.markJobCompleted(job.job_id, { 
@@ -254,31 +255,69 @@ export class JobProcessor {
     }
   }
 
-  private async sendMealPlanNotification(userId: string, planId: string): Promise<void> {
+  private async sendInstantMealPlanNotification(userId: string, planId: string): Promise<void> {
     try {
-      const scheduledTime = new Date();
-      const { error } = await this.supabase.rpc('schedule_notification', {
+      const now = new Date();
+      
+      // 1. Schedule the notification for immediate delivery
+      const { error: scheduleError } = await this.supabase.rpc('schedule_notification', {
         user_id_param: userId,
         notification_type_param: 'immediate',
         title_param: '🍽️ Your meal plan is ready!',
         body_param: 'Your personalized nutrition plan has been generated. Check it out now!',
-        scheduled_time_param: scheduledTime.toISOString(),
+        scheduled_time_param: now.toISOString(),
         timezone_param: 'GMT+00:00',
         data_param: {
           type: 'meal_plan_ready',
           planId: planId,
-          timestamp: scheduledTime.toISOString()
+          timestamp: now.toISOString()
         }
       });
 
-      if (error) {
-        logger.warn('Failed to schedule meal plan notification', { userId, planId, error });
-      } else {
-        logger.info('📱 Meal plan notification scheduled', { userId, planId });
+      if (scheduleError) {
+        logger.warn('Failed to schedule meal plan notification', { userId, planId, error: scheduleError });
+        return;
       }
+
+      logger.info('📱 Meal plan notification scheduled', { userId, planId });
+
+      // 2. Immediately trigger the send-notifications function
+      try {
+        const notificationResponse = await fetch(`${process.env.SUPABASE_URL}/functions/v1/send-notifications`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${process.env.SUPABASE_SERVICE_ROLE_KEY}`
+          },
+          body: JSON.stringify({
+            triggerImmediate: true,
+            userId: userId
+          })
+        });
+
+        if (notificationResponse.ok) {
+          logger.info('🚀 Instant notification triggered successfully', { userId, planId });
+        } else {
+          const errorText = await notificationResponse.text();
+          logger.warn('⚠️ Failed to trigger instant notification', { 
+            userId, 
+            planId, 
+            status: notificationResponse.status,
+            error: errorText 
+          });
+        }
+      } catch (triggerError) {
+        const err = triggerError as Error;
+        logger.warn('⚠️ Exception triggering instant notification', { 
+          userId, 
+          planId, 
+          error: err.message 
+        });
+      }
+
     } catch (error) {
       const err = error as Error;
-      logger.warn('Exception sending meal plan notification', { userId, planId, error: err.message });
+      logger.warn('Exception in instant meal plan notification', { userId, planId, error: err.message });
     }
   }
 

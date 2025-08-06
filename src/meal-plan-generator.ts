@@ -33,7 +33,12 @@ export class MealPlanGenerator {
     unsplashAccessKey?: string
   ) {
     this.openai = new OpenAI({ apiKey: openaiApiKey });
-    this.supabase = createClient(supabaseUrl, supabaseServiceKey);
+    this.supabase = createClient(supabaseUrl, supabaseServiceKey, {
+      auth: {
+        autoRefreshToken: false,
+        persistSession: false
+      }
+    });
     this.unsplashAccessKey = unsplashAccessKey;
   }
 
